@@ -314,7 +314,3 @@ dev.off()
 
 write.csv(train_transformed, "data/train_data.csv", row.names = FALSE)
 
-cat("\nDone\n")
-cat("Graphs saved in: 1.EDA/\n")
-cat("Train data:      data/train_data.csv  (", nrow(train_transformed), "rows )\n")
-cat("Test  data:      data/test_data.csv   (", nrow(test_df), "rows )\n")

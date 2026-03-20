@@ -199,11 +199,3 @@ All features have skewness extremely close to zero:
 
 ---
 
-## 10. Output Files
-
-| File | Description |
-|---|---|
-| `data/train_data.csv` | Training set (92,513 rows, cleaned) |
-| `data/test_data.csv` | Test set (23,127 rows, cleaned, untouched) |
-| `1.EDA/eda.R` | Reproducible R script for all EDA steps |
-| `1.EDA/*.png` | 12 visualization files |
