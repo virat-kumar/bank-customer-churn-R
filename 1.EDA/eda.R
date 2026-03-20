@@ -1,5 +1,4 @@
 # Bank Customer Churn - Exploratory Data Analysis
-# Reproduces all EDA steps and generates all plots in the 1.EDA/ folder.
 # Run from the project root: Rscript 1.EDA/eda.R
 
 set.seed(42)
