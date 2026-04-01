@@ -30,6 +30,7 @@ cat("Columns:", paste(names(df), collapse = ", "), "\n\n")
 drop_cols <- c("RowNumber", "CustomerId", "Surname", "First.Name",
                "Date.of.Birth", "Address", "Contact.Information",
                "Occupation", "Churn.Reason", "Churn.Date")
+# COnvert date of birth to age, and cross check 
 
 df_clean <- df[, !(names(df) %in% drop_cols)]
 names(df_clean) <- c("Gender", "MaritalStatus", "NumDependents", "Income",
