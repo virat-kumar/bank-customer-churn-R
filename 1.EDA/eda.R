@@ -1,7 +1,13 @@
 # Bank Customer Churn - Exploratory Data Analysis
-# Run from the project root: Rscript 1.EDA/eda.R
+#
+# Anaconda: activate this project's env first (has R + packages), then from repo root:
+#   conda activate bank-customer-churn-R
+#   Rscript 1.EDA/eda.R
+#
+# Age is derived from Date.of.Birth using a fixed reference date so runs are reproducible.
 
 set.seed(42)
+Sys.setenv(TZ = "UTC")
 
 required <- c("ggplot2", "gridExtra", "scales", "corrplot", "e1071", "caret")
 for (pkg in required) {
@@ -25,34 +31,56 @@ cat("Raw dataset\n")
 cat("Dimensions:", nrow(df), "rows x", ncol(df), "cols\n")
 cat("Columns:", paste(names(df), collapse = ", "), "\n\n")
 
-# 2. Drop irrelevant columns & rename
+# 2. Derive Age from Date.of.Birth, then build cleaned feature table
 
-drop_cols <- c("RowNumber", "CustomerId", "Surname", "First.Name",
-               "Date.of.Birth", "Address", "Contact.Information",
-               "Occupation", "Churn.Reason", "Churn.Date")
-# COnvert date of birth to age, and cross check 
+reference_date <- as.Date("2024-12-31")
+dob <- as.Date(df$Date.of.Birth)
+if (any(is.na(dob) & !is.na(df$Date.of.Birth) & df$Date.of.Birth != "")) {
+  warning("Some Date.of.Birth values failed to parse.")
+}
+age_years <- as.integer(floor(as.numeric(difftime(reference_date, dob, units = "days")) / 365.25))
 
-df_clean <- df[, !(names(df) %in% drop_cols)]
-names(df_clean) <- c("Gender", "MaritalStatus", "NumDependents", "Income",
-                      "EducationLevel", "Tenure", "CustomerSegment",
-                      "CommChannel", "CreditScore", "CreditHistLength",
-                      "OutstandingLoans", "Churn", "Balance",
-                      "NumProducts", "NumComplaints")
+df_clean <- data.frame(
+  Gender           = df$Gender,
+  MaritalStatus    = df$Marital.Status,
+  NumDependents    = df$Number.of.Dependents,
+  Age              = age_years,
+  Income           = df$Income,
+  EducationLevel   = df$Education.Level,
+  Tenure           = df$Customer.Tenure,
+  CustomerSegment  = df$Customer.Segment,
+  CommChannel      = df$Preferred.Communication.Channel,
+  CreditScore      = df$Credit.Score,
+  CreditHistLength = df$Credit.History.Length,
+  OutstandingLoans = df$Outstanding.Loans,
+  Churn            = df$Churn.Flag,
+  Balance          = df$Balance,
+  NumProducts      = df$NumOfProducts,
+  NumComplaints    = df$NumComplaints,
+  stringsAsFactors = FALSE
+)
+
+drop_cols <- c("RowNumber", "CustomerId", "Surname", "First.Name", "Date.of.Birth",
+               "Address", "Contact.Information", "Occupation", "Churn.Reason", "Churn.Date")
+cat("Dropped from modeling view (not carried as columns in df_clean):",
+    paste(drop_cols, collapse = ", "), "\n")
+cat("Age computed as floor(days between Date.of.Birth and", as.character(reference_date), ") / 365.25\n\n")
 
 df_clean$Churn <- as.factor(df_clean$Churn)
 cat_cols <- c("Gender", "MaritalStatus", "EducationLevel", "CustomerSegment", "CommChannel")
 for (col in cat_cols) df_clean[[col]] <- as.factor(df_clean[[col]])
 
-num_cols <- c("NumDependents", "Income", "Tenure", "CreditScore",
+num_cols <- c("NumDependents", "Age", "Income", "Tenure", "CreditScore",
               "CreditHistLength", "OutstandingLoans", "Balance",
               "NumProducts", "NumComplaints")
 
 cat("Cleaned dataset\n")
 cat("Dimensions:", nrow(df_clean), "rows x", ncol(df_clean), "cols\n")
-cat("Dropped:", paste(drop_cols, collapse = ", "), "\n")
 str(df_clean)
+cat("\nAge summary (years, reference", as.character(reference_date), ")\n")
+print(summary(df_clean$Age))
 
-# 3. Missing values & summary stats
+# 3. Missing values and summary stats
 
 cat("\nMissing values\n")
 n_missing <- sum(is.na(df_clean))
@@ -61,7 +89,7 @@ if (n_missing == 0) {
 } else {
   for (col in names(df_clean)) {
     n_miss <- sum(is.na(df_clean[[col]]))
-    if (n_miss > 0) cat(sprintf("  %-20s %d (%.2f%%)\n", col, n_miss, 100*n_miss/nrow(df_clean)))
+    if (n_miss > 0) cat(sprintf("  %-20s %d (%.2f%%)\n", col, n_miss, 100 * n_miss / nrow(df_clean)))
   }
 }
 
@@ -88,7 +116,7 @@ png("1.EDA/01_churn_distribution.png", width = 600, height = 450)
 ggplot(df_clean, aes(x = Churn, fill = Churn)) +
   geom_bar(width = 0.5) +
   geom_text(stat = "count", aes(label = paste0(after_stat(count), "\n(",
-            round(after_stat(count)/nrow(df_clean)*100, 1), "%)")),
+            round(after_stat(count) / nrow(df_clean) * 100, 1), "%)")),
             vjust = -0.2, size = 4.5) +
   scale_fill_manual(values = c("0" = "#2ecc71", "1" = "#e74c3c"),
                     labels = c("No Churn", "Churn")) +
@@ -117,7 +145,7 @@ rate_plots <- lapply(cat_cols, function(col) {
   names(rates)[2] <- "ChurnRate"
   ggplot(rates, aes(x = Level, y = ChurnRate)) +
     geom_col(fill = "#3498db", alpha = 0.85, width = 0.5) +
-    geom_text(aes(label = paste0(round(ChurnRate*100, 1), "%")), vjust = -0.3, size = 4) +
+    geom_text(aes(label = paste0(round(ChurnRate * 100, 1), "%")), vjust = -0.3, size = 4) +
     labs(title = paste("Churn Rate by", col), x = NULL, y = "Churn Rate") +
     scale_y_continuous(labels = percent_format(), limits = c(0, 1)) +
     theme(axis.text.x = element_text(angle = 30, hjust = 1, size = 9))
@@ -130,14 +158,14 @@ for (col in cat_cols) {
   cat(sprintf("\n  %s:\n", col))
   rates <- aggregate(as.numeric(as.character(df_clean$Churn)),
                      by = list(Level = df_clean[[col]]), FUN = mean)
-  for (i in 1:nrow(rates)) {
+  for (i in seq_len(nrow(rates))) {
     cat(sprintf("    %-15s  %.2f%%\n", rates$Level[i], rates$x[i] * 100))
   }
 }
 
-# 6. Numerical distributions & correlations
+# 6. Numerical distributions and correlations
 
-png("1.EDA/04_numerical_histograms.png", width = 1400, height = 900)
+png("1.EDA/04_numerical_histograms.png", width = 1400, height = 1100)
 hist_plots <- lapply(num_cols, function(col) {
   ggplot(df_clean, aes(x = .data[[col]])) +
     geom_histogram(bins = 40, fill = "#3498db", color = "white", alpha = 0.8) +
@@ -146,7 +174,7 @@ hist_plots <- lapply(num_cols, function(col) {
 do.call(grid.arrange, c(hist_plots, ncol = 3))
 dev.off()
 
-png("1.EDA/05_density_by_churn.png", width = 1400, height = 900)
+png("1.EDA/05_density_by_churn.png", width = 1400, height = 1100)
 dens_plots <- lapply(num_cols, function(col) {
   ggplot(df_clean, aes(x = .data[[col]], fill = Churn)) +
     geom_density(alpha = 0.45) +
@@ -167,10 +195,10 @@ for (i in seq_along(churn_cors)) {
   cat(sprintf("  %-20s  %+.4f\n", names(churn_cors)[i], churn_cors[i]))
 }
 
-png("1.EDA/06_correlation_heatmap.png", width = 800, height = 700)
+png("1.EDA/06_correlation_heatmap.png", width = 850, height = 750)
 corrplot(cor_matrix, method = "color", type = "lower",
          tl.col = "black", tl.srt = 45, addCoef.col = "black",
-         number.cex = 0.7, title = "Correlation Heatmap (incl. Churn)",
+         number.cex = 0.65, title = "Correlation Heatmap (incl. Churn)",
          mar = c(0, 0, 2, 0))
 dev.off()
 
@@ -188,6 +216,7 @@ cat("Test  churn:", round(mean(as.numeric(as.character(test_df$Churn))) * 100, 2
 write.csv(test_df, "data/test_data.csv", row.names = FALSE)
 
 # 8. Extensive EDA on training set
+
 churn_tbl <- table(train_df$Churn)
 cat("\nClass imbalance (train)\n")
 print(churn_tbl)
@@ -197,11 +226,11 @@ png("1.EDA/07_class_imbalance_train.png", width = 600, height = 450)
 ggplot(train_df, aes(x = Churn, fill = Churn)) +
   geom_bar(width = 0.5) +
   geom_text(stat = "count", aes(label = paste0(after_stat(count), "\n(",
-            round(after_stat(count)/nrow(train_df)*100, 1), "%)")),
+            round(after_stat(count) / nrow(train_df) * 100, 1), "%)")),
             vjust = -0.2, size = 4.5) +
   scale_fill_manual(values = c("0" = "#2ecc71", "1" = "#e74c3c"),
                     labels = c("No Churn", "Churn")) +
-  labs(title = "Class Imbalance — Training Set", x = "Churn", y = "Count") +
+  labs(title = "Class Imbalance - Training Set", x = "Churn", y = "Count") +
   ylim(0, max(churn_tbl) * 1.2)
 dev.off()
 
@@ -214,7 +243,7 @@ skew_df <- data.frame(Column = num_cols, Skewness = skew_vals, Kurtosis = kurt_v
                       row.names = NULL)
 print(skew_df)
 
-png("1.EDA/08_skewness_bars_train.png", width = 900, height = 500)
+png("1.EDA/08_skewness_bars_train.png", width = 1000, height = 520)
 ggplot(skew_df, aes(x = reorder(Column, -abs(Skewness)), y = Skewness, fill = Status)) +
   geom_col(width = 0.6) +
   geom_hline(yintercept = c(-1, 1), linetype = "dashed", color = "red", linewidth = 0.5) +
@@ -235,7 +264,7 @@ outlier_info <- do.call(rbind, lapply(num_cols, function(col) {
 }))
 print(outlier_info)
 
-png("1.EDA/09_boxplots_train.png", width = 1400, height = 900)
+png("1.EDA/09_boxplots_train.png", width = 1400, height = 1100)
 box_plots <- lapply(num_cols, function(col) {
   ggplot(train_df, aes(x = Churn, y = .data[[col]], fill = Churn)) +
     geom_boxplot(outlier.colour = "red", outlier.size = 0.5, alpha = 0.7) +
@@ -265,6 +294,16 @@ ggplot(train_df, aes(x = Churn, y = Balance, fill = Churn)) +
   theme(legend.position = "none")
 dev.off()
 
+png("1.EDA/13_age_vs_churn_violin.png", width = 700, height = 500)
+ggplot(train_df, aes(x = Churn, y = Age, fill = Churn)) +
+  geom_violin(alpha = 0.6, trim = FALSE) +
+  geom_boxplot(width = 0.15, outlier.size = 0.3) +
+  scale_fill_manual(values = c("0" = "#2ecc71", "1" = "#e74c3c"),
+                    labels = c("No Churn", "Churn")) +
+  labs(title = "Age Distribution by Churn (Train)", x = "Churn", y = "Age (years)") +
+  theme(legend.position = "none")
+dev.off()
+
 # 9. Skewness correction (train)
 
 cat("\nSkewness transformation check\n")
@@ -289,10 +328,10 @@ for (col in num_cols) {
 }
 
 if (!any_transformed) {
-  cat("  No transformations needed — all features already near-symmetric (|skew| < 0.02).\n")
+  cat("  No transformations applied - all features have |skew| <= 0.5 threshold for action.\n")
 }
 
-png("1.EDA/12_skewness_before_after.png", width = 1000, height = 500)
+png("1.EDA/12_skewness_before_after.png", width = 1100, height = 520)
 skew_after <- sapply(num_cols, function(c) round(skewness(train_transformed[[c]], na.rm = TRUE), 4))
 skew_compare <- data.frame(
   Column = rep(num_cols, 2),
@@ -305,7 +344,7 @@ ggplot(skew_compare, aes(x = Column, y = Skewness, fill = Stage)) +
   geom_hline(yintercept = c(-1, 1), linetype = "dashed", color = "red") +
   scale_fill_manual(values = c("Before" = "#e74c3c", "After" = "#2ecc71")) +
   labs(title = "Skewness: Before vs After Transformation Check (Training Set)",
-       subtitle = "No transformations needed — all features already near-symmetric",
+       subtitle = "No transformations applied - skewness within +/- 0.5",
        x = NULL, y = "Skewness") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 dev.off()
@@ -314,3 +353,4 @@ dev.off()
 
 write.csv(train_transformed, "data/train_data.csv", row.names = FALSE)
 
+cat("\nEDA complete. Plots saved under 1.EDA/; train_data.csv and test_data.csv under data/.\n")
