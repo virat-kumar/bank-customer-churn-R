@@ -1,0 +1,4 @@
+Ridge logistic test accuracy: 0.952004
+Decision tree test accuracy: 0.983872
+Random forest test accuracy: 0.98145
+Winner: Decision tree
