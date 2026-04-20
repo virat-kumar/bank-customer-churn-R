@@ -47,3 +47,9 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# Presentation export artifacts (keep markdown source only)
+Group6_Bank_Churn_Presentation.html
+Group6_Bank_Churn_Presentation.jpeg
+Group6_Bank_Churn_Presentation.pdf
+Group6_Bank_Churn_Presentation.png

@@ -1,0 +1,39 @@
+**Group Project**
+
+*Group: No. 6*
+
+Virat Kumar, Chamudhrikha Ravikumar, Jennia Paul, Mi Dinh
+
+**I. Project Topic**
+
+The purpose of this project is to analyze a customer churn dataset in
+order to identify the key factors that influence customers' decisions to
+leave the bank. Through exploratory data analysis and machine learning
+techniques, we aim to build a classification model that can predict
+whether a customer is likely to churn.
+
+Based on the results of the analysis, the company may develop strategies
+to reduce customer churn by focusing on the most important factors that
+influence customer retention.
+
+**II. Dataset**
+
+The dataset used in this project is Botswana Bank Customer Churn
+Dataset, which is a synthetic dataset designed to simulate realistic
+customer behavior for a fictional bank.
+
+The dataset contains 25 variables and 115,640 observations, including
+demographic attributes, financial indicators, and usage information of
+bank products. Some variables such as ID numbers, names, address
+information will be removed during preprocessing because they do not
+contribute to predicting customer churn.
+
+Link of dataset:
+<https://www.kaggle.com/datasets/sandiledesmondmfazi/bank-customer-churn>
+
+**III. Method**
+
+We plan to apply several classification methods, including logistic
+regression, decision tree to build models that predict customer churn.
+The performance of these models will be evaluated to determine which
+method provides the best predictive results.
